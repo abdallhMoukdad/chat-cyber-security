@@ -1,21 +1,20 @@
 package main
 
 import (
+	"awesomeProject1/enc"
 	"awesomeProject1/ent"
 	"awesomeProject1/ent/professor"
 	"awesomeProject1/ent/student"
 	"bufio"
 	"context"
+	"entgo.io/ent/dialect"
 	"fmt"
+	_ "github.com/lib/pq" // add this
 	"log"
 	"net"
 	"strings"
 	"sync"
 	"time"
-
-	"entgo.io/ent/dialect"
-
-	_ "github.com/lib/pq" // add this
 )
 
 func main() {
@@ -90,6 +89,10 @@ func handleConnection(conn net.Conn, client *ent.Client) {
 		case "chat":
 			fmt.Println("chat")
 			// handleChat(conn)
+		case "NotCompleteSignup":
+			fmt.Println("NotCompleteSignup")
+			handleNotCompleteSignup(conn, client)
+			//handleSignup(conn, client)
 
 		case "exit":
 			fmt.Println("Client disconnected:", conn.RemoteAddr())
@@ -101,6 +104,72 @@ func handleConnection(conn net.Conn, client *ent.Client) {
 	} else {
 		handleProfessorLogin(client, conn)
 	}
+}
+
+func checkIfComplete(client *ent.Client, username, password string) (bool, error) {
+	exsits, err := client.Student.Query().Where(student.Name(username),
+		student.Password(password),
+		student.NationalNumberContains("unknown")).Exist(context.Background())
+	if err != nil {
+		log.Printf("failed creating user: %v", err)
+		return exsits, err
+	}
+	return exsits, nil
+
+}
+func contuineSignUP(conn net.Conn, client *ent.Client, username, password string) {
+	fmt.Println("Client connected:", conn.RemoteAddr())
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading:", err)
+		return
+	}
+
+	data := string(buffer[:n])
+	fmt.Println(" encrypted Data received:", data)
+	decryptedData, _ := enc.GetAESDecrypted(data, "my32digitkey12345678901234567890")
+	fmt.Println("  Data received:", string(decryptedData))
+
+	// Split the values using the comma as the delimiter
+	splitValues := strings.Split(string(decryptedData), ",")
+	naionalNumber := splitValues[0]
+	phoneNumber := splitValues[1]
+	homeLocation := splitValues[2]
+	exsits, err := ContuineRegisterationStudent(client, naionalNumber, homeLocation, phoneNumber, username, password)
+	if err != nil && exsits == false {
+		log.Printf("failed to login user: %v", err)
+		conn.Write([]byte("Login failed. Invalid username or password.\n"))
+		return
+	} else {
+		conn.Write([]byte("register successful., " + username + "!\n"))
+	}
+
+}
+func handleNotCompleteSignup(conn net.Conn, client *ent.Client) {
+	fmt.Println("Client connected:", conn.RemoteAddr())
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading:", err)
+		return
+	}
+
+	data := string(buffer[:n])
+	fmt.Println("Data received:", data)
+	// Split the values using the comma as the delimiter
+	splitValues := strings.Split(data, ",")
+	username := splitValues[0]
+	password := splitValues[1]
+	exsits, err := RegisterNotCompleteStudent(client, username, password)
+	if err != nil && exsits == false {
+		log.Printf("failed to register user: %v", err)
+		conn.Write([]byte("Login failed. Invalid username or password.\n"))
+		return
+	} else {
+		conn.Write([]byte("register successful., " + username + "!\n"))
+	}
+
 }
 
 func handleProfessorLogin(client *ent.Client, conn net.Conn) {
@@ -270,13 +339,22 @@ func handleChat(conn net.Conn, username string) {
 	fmt.Println(names)
 
 	reader := bufio.NewReader(conn)
+	buffer := make([]byte, 2048)
+	n, err := conn.Read(buffer)
+	//result := strings.Replace(username, "\n", "", -1)
+	//username = result
+
+	existingRoom.BroadcastKeys(username, string(buffer[:n]))
+
 	for {
+		//n, err := conn.Read(buffer)
+
 		message, err := reader.ReadString('\n')
 		if err != nil {
 			return
 		}
-
-		message = strings.TrimSpace(message)
+		//message := string(buffer[:n])
+		//message = strings.TrimSpace(message)
 		if message == "exit" {
 			return
 		}
@@ -284,14 +362,14 @@ func handleChat(conn net.Conn, username string) {
 		username = result
 
 		fmt.Printf("[%s]: %s\n", username, message)
-		existingRoom.Broadcast(username, message)
+		existingRoom.BroadcastKeys(username, message)
 	}
 
 	// conn.Write([]byte(professorName))
 	for {
 
 		// Read message from the client_user
-		buffer := make([]byte, 1024)
+		buffer := make([]byte, 2048)
 		n, err := conn.Read(buffer)
 		if err != nil {
 			fmt.Println("Error reading message:", err)
@@ -378,19 +456,25 @@ func handleProfessorChat(conn net.Conn, username string) {
 	}
 
 	reader := bufio.NewReader(conn)
+	buffer := make([]byte, 2048)
+	n, _ := conn.Read(buffer)
+	fmt.Printf("[%s]: %s\n", username, n)
+
+	existingRoom.BroadcastKeys(username, string(buffer[:n]))
+
 	for {
 		message, err := reader.ReadString('\n')
 		if err != nil {
 			return
 		}
 
-		message = strings.TrimSpace(message)
+		//message = strings.TrimSpace(message)
 		if message == "exit" {
 			return
 		}
 
 		fmt.Printf("[%s]: %s\n", username, message)
-		existingRoom.Broadcast(username, message)
+		existingRoom.BroadcastKeys(username, message)
 	}
 
 	//
@@ -525,11 +609,21 @@ func handleLogin(conn net.Conn, client *ent.Client) {
 	//	fmt.Println("Error reading password:", err)
 	//	return
 	//}
+	unComplete, err := checkIfComplete(client, username, password)
+
 	exsits, err := LoginStudent(client, username, password)
 	if err != nil || exsits == false {
+
 		log.Printf("failed to login user: %v", err)
 		conn.Write([]byte("Login failed. Invalid username or password.\n"))
 		return
+	} else if err != nil || unComplete == true {
+		log.Printf("contuine user registreation %v", username)
+		conn.Write([]byte("2\n"))
+
+		conn.Write([]byte("contuine user registreation" + username + "!\n"))
+
+		contuineSignUP(conn, client, username, password)
 	} else {
 		user := User{Connection: conn, Username: username}
 		connectedUsers = append(connectedUsers, user)
@@ -589,6 +683,44 @@ func RegisterStudent(client *ent.Client, username, password, nationalNumber, hom
 		Create().SetName(username).
 		SetPassword(password).SetNationalNumber(nationalNumber).
 		SetHomeLocation(home_loc).SetPhoneNumber(phoneNumber).
+		Save(context.Background())
+	if err != nil {
+		log.Printf("failed creating user: %v", err)
+		return false, err
+	}
+	return true, nil
+}
+func ContuineRegisterationStudent(client *ent.Client, nationalNumber, home_loc, phoneNumber, userName, password string) (bool, error) {
+	//_, err := client.Student.
+	//	Create().SetNationalNumber(nationalNumber).
+	//	SetHomeLocation(home_loc).SetPhoneNumber(phoneNumber).
+	//	Save(context.Background())
+	//client.Student.Query().Select().
+	// Assume you have a "User" model defined in your schema
+	//user, err := client.Student.Query().Where(student.NameContains("dd")).Only(ctx)
+	//if err != nil {
+	//	// handle error
+	//}
+	user, err := client.Student.Query().Where(student.Name(userName),
+		student.Password(password)).Only(context.Background())
+	if err != nil {
+		log.Printf("failed creating user: %v", err)
+		return false, err
+	} else {
+		user.Update().SetNationalNumber(nationalNumber).
+			SetHomeLocation(home_loc).SetPhoneNumber(phoneNumber).Save(context.Background())
+
+		return true, nil
+	}
+	//return exsits, nil
+
+	// Update the user's fields based on certain conditions
+}
+
+func RegisterNotCompleteStudent(client *ent.Client, username, password string) (bool, error) {
+	_, err := client.Student.
+		Create().SetName(username).
+		SetPassword(password).
 		Save(context.Background())
 	if err != nil {
 		log.Printf("failed creating user: %v", err)
@@ -722,6 +854,19 @@ func (cr *ChatRoom) Broadcast(sender, message string) {
 	for username, conn := range cr.clients {
 		if username != sender {
 			conn.Write([]byte(fmt.Sprintf("[%s]: %s\n", sender, message)))
+			//conn.Write([]byte(message))
+		}
+	}
+}
+func (cr *ChatRoom) BroadcastKeys(sender, message string) {
+	cr.mu.Lock()
+	defer cr.mu.Unlock()
+	// var names = cr.GetClientsNames()
+
+	for username, conn := range cr.clients {
+		if username != sender {
+			log.Printf("[%s]: %s", sender, username)
+			conn.Write([]byte(message))
 			//conn.Write([]byte(message))
 		}
 	}
