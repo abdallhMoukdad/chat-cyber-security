@@ -91,6 +91,7 @@ var (
 		{Name: "national_number", Type: field.TypeString, Default: "unknown"},
 		{Name: "phone_number", Type: field.TypeString, Default: "unknown"},
 		{Name: "home_location", Type: field.TypeString, Default: "unknown"},
+		{Name: "enycrption_key", Type: field.TypeString, Default: "unknown"},
 	}
 	// StudentsTable holds the schema information for the "students" table.
 	StudentsTable = &schema.Table{

@@ -31,6 +31,8 @@ type Student struct {
 	PhoneNumber string `json:"phone_number,omitempty"`
 	// HomeLocation holds the value of the "home_location" field.
 	HomeLocation string `json:"home_location,omitempty"`
+	// EnycrptionKey holds the value of the "enycrption_key" field.
+	EnycrptionKey string `json:"enycrption_key,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the StudentQuery when eager-loading is set.
 	Edges        StudentEdges `json:"edges"`
@@ -81,7 +83,7 @@ func (*Student) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case student.FieldID:
 			values[i] = new(sql.NullInt64)
-		case student.FieldName, student.FieldPassword, student.FieldNationalNumber, student.FieldPhoneNumber, student.FieldHomeLocation:
+		case student.FieldName, student.FieldPassword, student.FieldNationalNumber, student.FieldPhoneNumber, student.FieldHomeLocation, student.FieldEnycrptionKey:
 			values[i] = new(sql.NullString)
 		case student.FieldEnrollmentDate:
 			values[i] = new(sql.NullTime)
@@ -141,6 +143,12 @@ func (s *Student) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field home_location", values[i])
 			} else if value.Valid {
 				s.HomeLocation = value.String
+			}
+		case student.FieldEnycrptionKey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field enycrption_key", values[i])
+			} else if value.Valid {
+				s.EnycrptionKey = value.String
 			}
 		default:
 			s.selectValues.Set(columns[i], values[i])
@@ -205,6 +213,9 @@ func (s *Student) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("home_location=")
 	builder.WriteString(s.HomeLocation)
+	builder.WriteString(", ")
+	builder.WriteString("enycrption_key=")
+	builder.WriteString(s.EnycrptionKey)
 	builder.WriteByte(')')
 	return builder.String()
 }

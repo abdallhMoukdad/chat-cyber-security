@@ -1621,6 +1621,7 @@ type StudentMutation struct {
 	national_number      *string
 	phone_number         *string
 	home_location        *string
+	enycrption_key       *string
 	clearedFields        map[string]struct{}
 	chats                *int
 	clearedchats         bool
@@ -1945,6 +1946,42 @@ func (m *StudentMutation) ResetHomeLocation() {
 	m.home_location = nil
 }
 
+// SetEnycrptionKey sets the "enycrption_key" field.
+func (m *StudentMutation) SetEnycrptionKey(s string) {
+	m.enycrption_key = &s
+}
+
+// EnycrptionKey returns the value of the "enycrption_key" field in the mutation.
+func (m *StudentMutation) EnycrptionKey() (r string, exists bool) {
+	v := m.enycrption_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnycrptionKey returns the old "enycrption_key" field's value of the Student entity.
+// If the Student object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StudentMutation) OldEnycrptionKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnycrptionKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnycrptionKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnycrptionKey: %w", err)
+	}
+	return oldValue.EnycrptionKey, nil
+}
+
+// ResetEnycrptionKey resets all changes to the "enycrption_key" field.
+func (m *StudentMutation) ResetEnycrptionKey() {
+	m.enycrption_key = nil
+}
+
 // SetChatsID sets the "chats" edge to the Chat entity by id.
 func (m *StudentMutation) SetChatsID(id int) {
 	m.chats = &id
@@ -2057,7 +2094,7 @@ func (m *StudentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *StudentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.name != nil {
 		fields = append(fields, student.FieldName)
 	}
@@ -2075,6 +2112,9 @@ func (m *StudentMutation) Fields() []string {
 	}
 	if m.home_location != nil {
 		fields = append(fields, student.FieldHomeLocation)
+	}
+	if m.enycrption_key != nil {
+		fields = append(fields, student.FieldEnycrptionKey)
 	}
 	return fields
 }
@@ -2096,6 +2136,8 @@ func (m *StudentMutation) Field(name string) (ent.Value, bool) {
 		return m.PhoneNumber()
 	case student.FieldHomeLocation:
 		return m.HomeLocation()
+	case student.FieldEnycrptionKey:
+		return m.EnycrptionKey()
 	}
 	return nil, false
 }
@@ -2117,6 +2159,8 @@ func (m *StudentMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldPhoneNumber(ctx)
 	case student.FieldHomeLocation:
 		return m.OldHomeLocation(ctx)
+	case student.FieldEnycrptionKey:
+		return m.OldEnycrptionKey(ctx)
 	}
 	return nil, fmt.Errorf("unknown Student field %s", name)
 }
@@ -2167,6 +2211,13 @@ func (m *StudentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetHomeLocation(v)
+		return nil
+	case student.FieldEnycrptionKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnycrptionKey(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Student field %s", name)
@@ -2234,6 +2285,9 @@ func (m *StudentMutation) ResetField(name string) error {
 		return nil
 	case student.FieldHomeLocation:
 		m.ResetHomeLocation()
+		return nil
+	case student.FieldEnycrptionKey:
+		m.ResetEnycrptionKey()
 		return nil
 	}
 	return fmt.Errorf("unknown Student field %s", name)

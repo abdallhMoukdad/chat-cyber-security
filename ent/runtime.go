@@ -67,6 +67,10 @@ func init() {
 	studentDescHomeLocation := studentFields[5].Descriptor()
 	// student.DefaultHomeLocation holds the default value on creation for the home_location field.
 	student.DefaultHomeLocation = studentDescHomeLocation.Default.(string)
+	// studentDescEnycrptionKey is the schema descriptor for enycrption_key field.
+	studentDescEnycrptionKey := studentFields[6].Descriptor()
+	// student.DefaultEnycrptionKey holds the default value on creation for the enycrption_key field.
+	student.DefaultEnycrptionKey = studentDescEnycrptionKey.Default.(string)
 	universityFields := schema.University{}.Fields()
 	_ = universityFields
 	// universityDescName is the schema descriptor for name field.

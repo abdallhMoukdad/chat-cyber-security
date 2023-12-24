@@ -7,11 +7,13 @@ import (
 	"awesomeProject1/ent/student"
 	"bufio"
 	"context"
+	"encoding/base64"
 	"entgo.io/ent/dialect"
 	"fmt"
 	_ "github.com/lib/pq" // add this
 	"log"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -532,6 +534,151 @@ func findTheRoom(username string) *ChatRoom {
 	}
 	return nil
 }
+func handleQuestion3(conn net.Conn, client *ent.Client) {
+	serverPrivateKey, serverPublicKey, err := enc.GenerateKeyPair()
+	//_, serverPublicKey, err := enc.GenerateKeyPair()
+
+	if err != nil {
+
+		fmt.Println("Error generating key pair for server:", err)
+		return
+	}
+	serverPubPEM, err := enc.EncodePublicKey(serverPublicKey)
+	if err != nil {
+		fmt.Println("Error encoding server public key:", err)
+		return
+	}
+	//clientPublicKey, err := bufio.NewReader(conn).ReadBytes('\n')
+	clientPublicKey, err := readFromConnection(conn)
+	fmt.Print("start\n" + string(clientPublicKey) + "end\n")
+
+	clientPubDecoded, err := enc.DecodePublicKey(clientPublicKey)
+	conn.Write([]byte(string(serverPubPEM) + "\n"))
+	fmt.Println("the student public key", clientPubDecoded)
+	fmt.Printf("Server Public Key: %+v\n", clientPubDecoded)
+	// Start a goroutine to read and display messages from the server
+	i := 0
+	//message, err := readFromConnection(conn)
+	//session, err := bufio.NewReader(conn).ReadString('\n')
+	//message, err := bufio.NewReader(conn).ReadString('\n')
+	//fmt.Println(string(message))
+
+	session, err := bufio.NewReader(conn).ReadBytes('\n')
+	session = []byte(strings.TrimSpace(string(session)))
+
+	uDec, err := base64.StdEncoding.DecodeString(string(session))
+	data, _ := enc.Decrypt([]byte(uDec), serverPrivateKey)
+
+	session = data
+	fmt.Printf("Session Key: %x\n", session)
+
+	//fmt.Println("this the session key", string(session))
+	//
+	go func() {
+		for {
+			//fmt.Println("the pro goroutine started")
+			//message, err := bufio.NewReader(conn).ReadString('\n')
+			message, err := bufio.NewReader(conn).ReadString('\n')
+			//fmt.Println("the message is", message)
+
+			//fmt.Println(message)
+
+			//message, err := bufio.NewReader(conn).ReadString('.')
+			//buffer := make([]byte, 2048)
+			//n, err := conn.Read(buffer)
+			//message := string(buffer[:n])
+			//uDec, _ := base64.URLEncoding.DecodeString(message)
+			message = strings.TrimSpace(message)
+
+			uDec, err := base64.StdEncoding.DecodeString(message)
+			//fmt.Println("uDec is:", string(uDec))
+
+			if err != nil {
+				fmt.Println("Error decoding base64:", err)
+				return
+			}
+
+			//fmt.Println(string(uDec))
+
+			if err != nil {
+				fmt.Println("Error reading message:", err)
+				return
+			}
+			i++
+			//fmt.Println("i am here for the time number", i)
+			data1, _ := enc.GetAESDecrypted(string(uDec), string(session))
+			fmt.Println(string(data1))
+
+			//data, _ := enc.Decrypt([]byte(uDec), serverPrivateKey)
+			//fmt.Println(string(data))
+			cipherText, err := enc.Encrypt([]byte("Done"), clientPubDecoded)
+			s64 := base64.StdEncoding.EncodeToString(cipherText)
+			conn.Write([]byte(s64))
+			conn.Write([]byte("\n"))
+
+			//fmt.Print(message)
+
+			//fmt.Print(message)
+		}
+	}()
+
+	// Read professor's input and send messages to the server
+	for {
+		fmt.Print("Enter your message: ")
+
+		message := readInput()
+		//conn.Write([]byte(message + "\n"))
+		//cipherText, err := enc.Encrypt([]byte(message), clientPubDecoded)
+		//if err != nil {
+		//	fmt.Println("Error encrypt message:", err)
+		//	return
+		//}
+		cipherText, err := enc.GetAESEncrypted(message, string(session))
+		if err != nil {
+			fmt.Println("Error encrypt message:", err)
+			return
+		}
+
+		//fmt.Println("the cipher text:", cipherText)
+		//fmt.Println("the cipher text:", string(cipherText))
+		s64 := base64.StdEncoding.EncodeToString([]byte(cipherText))
+
+		//fmt.Println("the cipher text:", s64)
+		//conn.Write([]byte(string(cipherText) + "\n"))
+		conn.Write([]byte(s64))
+		//conn.Write([]byte(string('\n')))
+		conn.Write([]byte("\n"))
+
+		//conn.Write(cipherText + byte('\n'))
+		//message, err := bufio.NewReader(conn).ReadString('\n')
+		//if err != nil {
+		//	fmt.Println("Error reading message:", err)
+		//	return
+		//}
+		//fmt.Print("this form the backend", message)
+
+		if message == "exit" {
+			break
+		}
+	}
+}
+func readInput() string {
+	var input string
+	reader := bufio.NewReader(os.Stdin)
+
+	input, _ = reader.ReadString('\n')
+
+	//fmt.Scanln(&input)
+	return input
+}
+func readFromConnection(conn net.Conn) ([]byte, error) {
+	buffer := make([]byte, 2048)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+	return buffer[:n], nil
+}
 
 // -------------------------------------------------------
 var professors = []string{"Professor A", "Professor B", "Professor C"}
@@ -638,7 +785,21 @@ func handleLogin(conn net.Conn, client *ent.Client) {
 
 		time.Sleep(1 * time.Second)
 		// conn.Write([]byte("Login successful. Welcome, " + username + "!\n"))
-		handleChat(conn, username)
+		role, _ := bufio.NewReader(conn).ReadString('\n')
+		// fmt.Println("hey ya you now we are working")
+		result := strings.Replace(role, "\n", "", -1)
+		role = result
+		if role == "chat" {
+			fmt.Println("chatttttttttttttttttttttttttttttttttt")
+			handleChat(conn, username)
+
+		} else if role == "Q3" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ3")
+			handleQuestion3(conn, client)
+		}
+
+		//handleChat(conn, username)
 	}
 
 	// Perform login authentication

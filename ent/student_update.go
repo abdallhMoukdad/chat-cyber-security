@@ -114,6 +114,20 @@ func (su *StudentUpdate) SetNillableHomeLocation(s *string) *StudentUpdate {
 	return su
 }
 
+// SetEnycrptionKey sets the "enycrption_key" field.
+func (su *StudentUpdate) SetEnycrptionKey(s string) *StudentUpdate {
+	su.mutation.SetEnycrptionKey(s)
+	return su
+}
+
+// SetNillableEnycrptionKey sets the "enycrption_key" field if the given value is not nil.
+func (su *StudentUpdate) SetNillableEnycrptionKey(s *string) *StudentUpdate {
+	if s != nil {
+		su.SetEnycrptionKey(*s)
+	}
+	return su
+}
+
 // SetChatsID sets the "chats" edge to the Chat entity by ID.
 func (su *StudentUpdate) SetChatsID(id int) *StudentUpdate {
 	su.mutation.SetChatsID(id)
@@ -235,6 +249,9 @@ func (su *StudentUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := su.mutation.HomeLocation(); ok {
 		_spec.SetField(student.FieldHomeLocation, field.TypeString, value)
+	}
+	if value, ok := su.mutation.EnycrptionKey(); ok {
+		_spec.SetField(student.FieldEnycrptionKey, field.TypeString, value)
 	}
 	if su.mutation.ChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -398,6 +415,20 @@ func (suo *StudentUpdateOne) SetNillableHomeLocation(s *string) *StudentUpdateOn
 	return suo
 }
 
+// SetEnycrptionKey sets the "enycrption_key" field.
+func (suo *StudentUpdateOne) SetEnycrptionKey(s string) *StudentUpdateOne {
+	suo.mutation.SetEnycrptionKey(s)
+	return suo
+}
+
+// SetNillableEnycrptionKey sets the "enycrption_key" field if the given value is not nil.
+func (suo *StudentUpdateOne) SetNillableEnycrptionKey(s *string) *StudentUpdateOne {
+	if s != nil {
+		suo.SetEnycrptionKey(*s)
+	}
+	return suo
+}
+
 // SetChatsID sets the "chats" edge to the Chat entity by ID.
 func (suo *StudentUpdateOne) SetChatsID(id int) *StudentUpdateOne {
 	suo.mutation.SetChatsID(id)
@@ -549,6 +580,9 @@ func (suo *StudentUpdateOne) sqlSave(ctx context.Context) (_node *Student, err e
 	}
 	if value, ok := suo.mutation.HomeLocation(); ok {
 		_spec.SetField(student.FieldHomeLocation, field.TypeString, value)
+	}
+	if value, ok := suo.mutation.EnycrptionKey(); ok {
+		_spec.SetField(student.FieldEnycrptionKey, field.TypeString, value)
 	}
 	if suo.mutation.ChatsCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -85,6 +85,11 @@ func HomeLocation(v string) predicate.Student {
 	return predicate.Student(sql.FieldEQ(FieldHomeLocation, v))
 }
 
+// EnycrptionKey applies equality check predicate on the "enycrption_key" field. It's identical to EnycrptionKeyEQ.
+func EnycrptionKey(v string) predicate.Student {
+	return predicate.Student(sql.FieldEQ(FieldEnycrptionKey, v))
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.Student {
 	return predicate.Student(sql.FieldEQ(FieldName, v))
@@ -448,6 +453,71 @@ func HomeLocationEqualFold(v string) predicate.Student {
 // HomeLocationContainsFold applies the ContainsFold predicate on the "home_location" field.
 func HomeLocationContainsFold(v string) predicate.Student {
 	return predicate.Student(sql.FieldContainsFold(FieldHomeLocation, v))
+}
+
+// EnycrptionKeyEQ applies the EQ predicate on the "enycrption_key" field.
+func EnycrptionKeyEQ(v string) predicate.Student {
+	return predicate.Student(sql.FieldEQ(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyNEQ applies the NEQ predicate on the "enycrption_key" field.
+func EnycrptionKeyNEQ(v string) predicate.Student {
+	return predicate.Student(sql.FieldNEQ(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyIn applies the In predicate on the "enycrption_key" field.
+func EnycrptionKeyIn(vs ...string) predicate.Student {
+	return predicate.Student(sql.FieldIn(FieldEnycrptionKey, vs...))
+}
+
+// EnycrptionKeyNotIn applies the NotIn predicate on the "enycrption_key" field.
+func EnycrptionKeyNotIn(vs ...string) predicate.Student {
+	return predicate.Student(sql.FieldNotIn(FieldEnycrptionKey, vs...))
+}
+
+// EnycrptionKeyGT applies the GT predicate on the "enycrption_key" field.
+func EnycrptionKeyGT(v string) predicate.Student {
+	return predicate.Student(sql.FieldGT(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyGTE applies the GTE predicate on the "enycrption_key" field.
+func EnycrptionKeyGTE(v string) predicate.Student {
+	return predicate.Student(sql.FieldGTE(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyLT applies the LT predicate on the "enycrption_key" field.
+func EnycrptionKeyLT(v string) predicate.Student {
+	return predicate.Student(sql.FieldLT(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyLTE applies the LTE predicate on the "enycrption_key" field.
+func EnycrptionKeyLTE(v string) predicate.Student {
+	return predicate.Student(sql.FieldLTE(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyContains applies the Contains predicate on the "enycrption_key" field.
+func EnycrptionKeyContains(v string) predicate.Student {
+	return predicate.Student(sql.FieldContains(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyHasPrefix applies the HasPrefix predicate on the "enycrption_key" field.
+func EnycrptionKeyHasPrefix(v string) predicate.Student {
+	return predicate.Student(sql.FieldHasPrefix(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyHasSuffix applies the HasSuffix predicate on the "enycrption_key" field.
+func EnycrptionKeyHasSuffix(v string) predicate.Student {
+	return predicate.Student(sql.FieldHasSuffix(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyEqualFold applies the EqualFold predicate on the "enycrption_key" field.
+func EnycrptionKeyEqualFold(v string) predicate.Student {
+	return predicate.Student(sql.FieldEqualFold(FieldEnycrptionKey, v))
+}
+
+// EnycrptionKeyContainsFold applies the ContainsFold predicate on the "enycrption_key" field.
+func EnycrptionKeyContainsFold(v string) predicate.Student {
+	return predicate.Student(sql.FieldContainsFold(FieldEnycrptionKey, v))
 }
 
 // HasChats applies the HasEdge predicate on the "chats" edge.

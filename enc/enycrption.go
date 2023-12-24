@@ -1,4 +1,4 @@
-package main
+package enc
 
 import (
 	"bytes"
@@ -12,7 +12,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"net"
 )
 
 // -------------------2---------------------------------
@@ -104,21 +103,23 @@ func CreateKeys() []byte {
 	})
 	return pubPEM
 }
-func DecodePublicKey(pubPEMBytes []byte) *rsa.PublicKey {
-	pubBlock, _ := pem.Decode(pubPEMBytes)
 
-	pubKeyInterface, _ := x509.ParsePKIXPublicKey(pubBlock.Bytes)
-	pubKey := pubKeyInterface.(*rsa.PublicKey)
-	fmt.Println("Received Public Key", pubKey.N)
-	return pubKey
-}
-func ServerAsymmetricEncryption(text string) (string, error) {
-	keys := CreateKeys()
-	block, _ := pem.Decode(keys)
-	print(block.Bytes)
-	return
-}
-func generateKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
+//func DecodePublicKey(pubPEMBytes []byte) *rsa.PublicKey {
+//	pubBlock, _ := pem.Decode(pubPEMBytes)
+//
+//	pubKeyInterface, _ := x509.ParsePKIXPublicKey(pubBlock.Bytes)
+//	pubKey := pubKeyInterface.(*rsa.PublicKey)
+//	fmt.Println("Received Public Key", pubKey.N)
+//	return pubKey
+//}
+
+//	func ServerAsymmetricEncryption(text string) (string, error) {
+//		keys := CreateKeys()
+//		block, _ := pem.Decode(keys)
+//		print(block.Bytes)
+//		return
+//	}
+func GenerateKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, nil, err
@@ -127,7 +128,7 @@ func generateKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	return privateKey, publicKey, nil
 }
 
-func encodePublicKey(pubkey *rsa.PublicKey) ([]byte, error) {
+func EncodePublicKey(pubkey *rsa.PublicKey) ([]byte, error) {
 	pubkeyBytes, err := x509.MarshalPKIXPublicKey(pubkey)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func encodePublicKey(pubkey *rsa.PublicKey) ([]byte, error) {
 	return pubkeyPEM, nil
 }
 
-func decodePublicKey(pubkeyPEM []byte) (*rsa.PublicKey, error) {
+func DecodePublicKey(pubkeyPEM []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(pubkeyPEM)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode public key")
@@ -152,7 +153,7 @@ func decodePublicKey(pubkeyPEM []byte) (*rsa.PublicKey, error) {
 	return pubkey, nil
 }
 
-func encrypt(data []byte, pubkey *rsa.PublicKey) ([]byte, error) {
+func Encrypt(data []byte, pubkey *rsa.PublicKey) ([]byte, error) {
 	ciphertext, err := rsa.EncryptPKCS1v15(rand.Reader, pubkey, data)
 	if err != nil {
 		return nil, err
@@ -160,71 +161,86 @@ func encrypt(data []byte, pubkey *rsa.PublicKey) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func decrypt(ciphertext []byte, privatekey *rsa.PrivateKey) ([]byte, error) {
+func Decrypt(ciphertext []byte, privatekey *rsa.PrivateKey) ([]byte, error) {
 	data, err := rsa.DecryptPKCS1v15(rand.Reader, privatekey, ciphertext)
+	//rsa.
 	if err != nil {
+		//fmt.Println("the error did happen ", err)
+
 		return []byte{}, err
 	}
 	return data, nil
 }
-
-func main() {
-	serverPrivateKey, serverPublicKey, err := generateKeyPair()
+func CreateSessionKey() []byte {
+	sessionKey := make([]byte, 16)
+	_, err := rand.Read(sessionKey)
 	if err != nil {
-		fmt.Println("Error generating key pair for server:", err)
-		return
+		fmt.Println("Error generating session key:", err)
+		return nil
 	}
-	clientPrivateKey, clientPublicKey, err := generateKeyPair()
-	if err != nil {
-		fmt.Println("Error generating key pair for client:", err)
-		return
-	}
+	fmt.Printf("Session Key: %x\n", sessionKey)
 
-	serverPubPEM, err := encodePublicKey(serverPublicKey)
-	if err != nil {
-		fmt.Println("Error encoding server public key:", err)
-		return
-	}
-	clientPubPEM, err := encodePublicKey(clientPublicKey)
-	if err != nil {
-		fmt.Println("Error encoding client public key:", err)
-		return
-	}
-
-	serverPubDecoded, err := decodePublicKey(serverPubPEM)
-
-	clientPubDecoded, err := decodePublicKey(clientPubPEM)
-
-	conn, err := net.Dial("tcp", "localhost:8080")
-	defer conn.Close()
-
-	cipherText, err := encrypt([]byte("Hello from client"), serverPubDecoded)
-
-	conn.Write(cipherText)
-
-	buffer := make([]byte, 1024)
-
-	n, _ := conn.Read(buffer)
-
-	data, _ := decrypt(buffer, clientPrivateKey)
-
-	fmt.Println(string(data))
+	return sessionKey
 
 }
 
-// -----------------------------------4--------------------------
-func main() {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		fmt.Println("Error generating private key:", err)
-		return
-	}
-
-	publicKey := &privateKey.PublicKey
-
-	fmt.Println("Private key:", privateKey)
-	fmt.Println("Public key:", publicKey)
-}
+//func main() {
+//	serverPrivateKey, serverPublicKey, err := generateKeyPair()
+//	if err != nil {
+//		fmt.Println("Error generating key pair for server:", err)
+//		return
+//	}
+//	clientPrivateKey, clientPublicKey, err := generateKeyPair()
+//	if err != nil {
+//		fmt.Println("Error generating key pair for client:", err)
+//		return
+//	}
+//
+//	serverPubPEM, err := encodePublicKey(serverPublicKey)
+//	if err != nil {
+//		fmt.Println("Error encoding server public key:", err)
+//		return
+//	}
+//	clientPubPEM, err := encodePublicKey(clientPublicKey)
+//	if err != nil {
+//		fmt.Println("Error encoding client public key:", err)
+//		return
+//	}
+//
+//	serverPubDecoded, err := decodePublicKey(serverPubPEM)
+//
+//	clientPubDecoded, err := decodePublicKey(clientPubPEM)
+//
+//	conn, err := net.Dial("tcp", "localhost:8080")
+//	defer conn.Close()
+//
+//	cipherText, err := encrypt([]byte("Hello from client"), serverPubDecoded)
+//
+//	conn.Write(cipherText)
+//
+//	buffer := make([]byte, 1024)
+//
+//	n, _ := conn.Read(buffer)
+//
+//	data, _ := decrypt(buffer, clientPrivateKey)
+//
+//	fmt.Println(string(data))
+//
+//}
+//
+//// -----------------------------------4--------------------------
+//func main() {
+//	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+//	if err != nil {
+//		fmt.Println("Error generating private key:", err)
+//		return
+//	}
+//
+//	publicKey := &privateKey.PublicKey
+//
+//	fmt.Println("Private key:", privateKey)
+//	fmt.Println("Public key:", publicKey)
+//}
 
 // 2. Sign a message using the private key:
 func signMessage(privateKey *rsa.PrivateKey, message []byte) ([]byte, error) {

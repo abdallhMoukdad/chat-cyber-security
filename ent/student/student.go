@@ -26,6 +26,8 @@ const (
 	FieldPhoneNumber = "phone_number"
 	// FieldHomeLocation holds the string denoting the home_location field in the database.
 	FieldHomeLocation = "home_location"
+	// FieldEnycrptionKey holds the string denoting the enycrption_key field in the database.
+	FieldEnycrptionKey = "enycrption_key"
 	// EdgeChats holds the string denoting the chats edge name in mutations.
 	EdgeChats = "chats"
 	// EdgeSentMessages holds the string denoting the sent_messages edge name in mutations.
@@ -57,6 +59,7 @@ var Columns = []string{
 	FieldNationalNumber,
 	FieldPhoneNumber,
 	FieldHomeLocation,
+	FieldEnycrptionKey,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -84,6 +87,8 @@ var (
 	DefaultPhoneNumber string
 	// DefaultHomeLocation holds the default value on creation for the "home_location" field.
 	DefaultHomeLocation string
+	// DefaultEnycrptionKey holds the default value on creation for the "enycrption_key" field.
+	DefaultEnycrptionKey string
 )
 
 // OrderOption defines the ordering options for the Student queries.
@@ -122,6 +127,11 @@ func ByPhoneNumber(opts ...sql.OrderTermOption) OrderOption {
 // ByHomeLocation orders the results by the home_location field.
 func ByHomeLocation(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldHomeLocation, opts...).ToFunc()
+}
+
+// ByEnycrptionKey orders the results by the enycrption_key field.
+func ByEnycrptionKey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldEnycrptionKey, opts...).ToFunc()
 }
 
 // ByChatsField orders the results by chats field.

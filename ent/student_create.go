@@ -106,6 +106,20 @@ func (sc *StudentCreate) SetNillableHomeLocation(s *string) *StudentCreate {
 	return sc
 }
 
+// SetEnycrptionKey sets the "enycrption_key" field.
+func (sc *StudentCreate) SetEnycrptionKey(s string) *StudentCreate {
+	sc.mutation.SetEnycrptionKey(s)
+	return sc
+}
+
+// SetNillableEnycrptionKey sets the "enycrption_key" field if the given value is not nil.
+func (sc *StudentCreate) SetNillableEnycrptionKey(s *string) *StudentCreate {
+	if s != nil {
+		sc.SetEnycrptionKey(*s)
+	}
+	return sc
+}
+
 // SetChatsID sets the "chats" edge to the Chat entity by ID.
 func (sc *StudentCreate) SetChatsID(id int) *StudentCreate {
 	sc.mutation.SetChatsID(id)
@@ -203,6 +217,10 @@ func (sc *StudentCreate) defaults() {
 		v := student.DefaultHomeLocation
 		sc.mutation.SetHomeLocation(v)
 	}
+	if _, ok := sc.mutation.EnycrptionKey(); !ok {
+		v := student.DefaultEnycrptionKey
+		sc.mutation.SetEnycrptionKey(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -229,6 +247,9 @@ func (sc *StudentCreate) check() error {
 	}
 	if _, ok := sc.mutation.HomeLocation(); !ok {
 		return &ValidationError{Name: "home_location", err: errors.New(`ent: missing required field "Student.home_location"`)}
+	}
+	if _, ok := sc.mutation.EnycrptionKey(); !ok {
+		return &ValidationError{Name: "enycrption_key", err: errors.New(`ent: missing required field "Student.enycrption_key"`)}
 	}
 	return nil
 }
@@ -279,6 +300,10 @@ func (sc *StudentCreate) createSpec() (*Student, *sqlgraph.CreateSpec) {
 	if value, ok := sc.mutation.HomeLocation(); ok {
 		_spec.SetField(student.FieldHomeLocation, field.TypeString, value)
 		_node.HomeLocation = value
+	}
+	if value, ok := sc.mutation.EnycrptionKey(); ok {
+		_spec.SetField(student.FieldEnycrptionKey, field.TypeString, value)
+		_node.EnycrptionKey = value
 	}
 	if nodes := sc.mutation.ChatsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
