@@ -17,6 +17,14 @@ import (
 )
 
 func main() {
+	//arguments := os.Args
+	//if len(arguments) == 1 {
+	//	fmt.Println("Please provide host:port.")
+	//	return
+	//}
+	//
+	//CONNECT := arguments[1]
+	//conn, err := net.Dial("tcp", CONNECT)
 	conn, err := net.Dial("tcp", "localhost:8082")
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)

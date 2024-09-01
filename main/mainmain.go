@@ -132,7 +132,6 @@ func handleRoom(chatRoom *ChatRoom, conn net.Conn) {
 
 func handleConnection(conn net.Conn, client *ent.Client) {
 	defer conn.Close()
-
 	fmt.Println("A new user connected.")
 	role, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {

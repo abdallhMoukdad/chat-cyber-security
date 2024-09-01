@@ -7,10 +7,19 @@ import (
 	"awesomeProject1/ent/student"
 	"bufio"
 	"context"
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/binary"
+	"encoding/gob"
+	"encoding/pem"
 	"entgo.io/ent/dialect"
 	"fmt"
+	"github.com/google/uuid"
 	_ "github.com/lib/pq" // add this
+	"io"
 	"log"
 	"net"
 	"os"
@@ -104,7 +113,31 @@ func handleConnection(conn net.Conn, client *ent.Client) {
 		}
 		//}
 	} else {
-		handleProfessorLogin(client, conn)
+		buffer := make([]byte, 1024)
+		n, err := conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading data:", err)
+			// break
+		}
+
+		data := strings.TrimSpace(string(buffer[:n]))
+		switch data {
+		case "signup":
+			fmt.Println("signup")
+			handleNotCompleteSignupPro(conn, client)
+
+		case "login":
+			fmt.Println("login")
+			handleProfessorLogin(client, conn)
+
+			//handleLogin(conn, client)
+		case "exit":
+			fmt.Println("Client disconnected:", conn.RemoteAddr())
+			return
+		default:
+			fmt.Println("Unknown command:", data)
+		}
+
 	}
 }
 
@@ -173,6 +206,35 @@ func handleNotCompleteSignup(conn net.Conn, client *ent.Client) {
 	}
 
 }
+func handleNotCompleteSignupPro(conn net.Conn, client *ent.Client) {
+	fmt.Println("Client connected:", conn.RemoteAddr())
+	buffer := make([]byte, 1024)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading:", err)
+		return
+	}
+
+	data := string(buffer[:n])
+	fmt.Println("Data received:", data)
+	// Split the values using the comma as the delimiter
+	splitValues := strings.Split(data, ",")
+	username := splitValues[0]
+	username = strings.Replace(username, "\n", "", -1)
+
+	password := splitValues[1]
+	password = strings.Replace(password, "\n", "", -1)
+
+	exsits, err := RegisterProfessor(client, username, password)
+	if err != nil && exsits == false {
+		log.Printf("failed to register user: %v", err)
+		conn.Write([]byte("register failed. Invalid username or password.\n"))
+		return
+	} else {
+		conn.Write([]byte("register successful., " + username + "!\n"))
+	}
+
+}
 
 func handleProfessorLogin(client *ent.Client, conn net.Conn) {
 	buffer := make([]byte, 1024)
@@ -197,20 +259,6 @@ func handleProfessorLogin(client *ent.Client, conn net.Conn) {
 	result = strings.Replace(password, "\n", "", -1)
 	password = result
 
-	//exampleEmail := splitValues[2]
-	// Read username from the client_user
-	//username, err := readLine(conn)
-	//if err != nil {
-	//	fmt.Println("Error reading username:", err)
-	//	return
-	//}
-	//
-	//// Read password from the client_user
-	//password, err := readLine(conn)
-	//if err != nil {
-	//	fmt.Println("Error reading password:", err)
-	//	return
-	//}
 	exsits, err := LoginProfessor(client, username, password)
 	if err != nil || exsits == false {
 		log.Printf("failed to login user: %v", err)
@@ -225,7 +273,28 @@ func handleProfessorLogin(client *ent.Client, conn net.Conn) {
 
 		conn.Write([]byte("Login successful. Welcome, " + username + "!\n"))
 		// handleChat(conn, username)
-		handleProfessorChat(conn, username)
+		role, _ := bufio.NewReader(conn).ReadString('\n')
+		// fmt.Println("hey ya you now we are working")
+		result := strings.Replace(role, "\n", "", -1)
+		role = result
+		if role == "chat" {
+			fmt.Println("chatttttttttttttttttttttttttttttttttt")
+			handleProfessorChat(conn, username)
+
+		} else if role == "Q3" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ3")
+			handleQuestion3(conn, client, username, password)
+		} else if role == "Q4" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ4")
+			handleQuestion4(conn, client, username)
+		} else if role == "Q5" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ5")
+			handleQuestion5(conn, client, username)
+		}
+
 	}
 }
 
@@ -304,20 +373,6 @@ func handleChat(conn net.Conn, username string) {
 		fmt.Println("the pro found yahhhhhhhhhhhh")
 		conn.Write([]byte("the professor  exsits  ...\n"))
 
-		//for _, room := range rooms {
-		//
-		//	if len(room.GetClients()) == 1 {
-		//		existingRoom = room
-		//		break
-		//	}
-		//}
-
-		//if existingRoom == nil {
-		//	// Create a new room for this user
-		//	existingRoom = NewChatRoom()
-		//	rooms = append(rooms, existingRoom)
-		//}
-
 		// Add the user to the existing room
 		existingRoom.AddClient(professorObject.Username, professorObject.Connection)
 		conn.Write([]byte("you can chat now ...\n"))
@@ -394,62 +449,7 @@ func handleChat(conn net.Conn, username string) {
 }
 
 func handleProfessorChat(conn net.Conn, username string) {
-	//var existingRoom *ChatRoom
-	//for _, room := range rooms {
-	//
-	//	if len(room.GetClients()) == 1 {
-	//		existingRoom = room
-	//		break
-	//	}
-	//}
-	//
-	//if existingRoom == nil {
-	//	// Create a new room for this user
-	//	existingRoom = NewChatRoom()
-	//	rooms = append(rooms, existingRoom)
-	//}
 
-	// Add the user to the existing room
-	//existingRoom.AddClient(username, conn)
-	//
-	//professorObject := searchUser(professorName)
-	//if professorObject != nil {
-	//	fmt.Println("the pro found yahhhhhhhhhhhh")
-	//	conn.Write([]byte("the professor  exsits  ...\n"))
-	//
-	//	//for _, room := range rooms {
-	//	//
-	//	//	if len(room.GetClients()) == 1 {
-	//	//		existingRoom = room
-	//	//		break
-	//	//	}
-	//	//}
-	//
-	//	//if existingRoom == nil {
-	//	//	// Create a new room for this user
-	//	//	existingRoom = NewChatRoom()
-	//	//	rooms = append(rooms, existingRoom)
-	//	//}
-	//
-	//	// Add the user to the existing room
-	//	existingRoom.AddClient(professorObject.Username, professorObject.Connection)
-	//	conn.Write([]byte("you can chat now ...\n"))
-	//
-	//} else {
-	//	fmt.Println("the professor not exsits yet or not contected ")
-	//	conn.Write([]byte("0\n"))
-	//
-	//	conn.Write([]byte("the professor not exsits yet or not contected...\n"))
-	//
-	//}
-	//
-	//// Notify the user that they are waiting for another participant
-	//conn.Write([]byte("Waiting for another participant...\n"))
-
-	// Check if there is another user in the same chat room
-	//for len(existingRoom.GetClients()) < 2 {
-	//	time.Sleep(1 * time.Second)
-	//}
 	time.Sleep(7 * time.Second)
 	existingRoom := findTheRoom(username)
 	if existingRoom == nil {
@@ -534,7 +534,7 @@ func findTheRoom(username string) *ChatRoom {
 	}
 	return nil
 }
-func handleQuestion3(conn net.Conn, client *ent.Client) {
+func handleQuestion3(conn net.Conn, client *ent.Client, userName, password string) {
 	serverPrivateKey, serverPublicKey, err := enc.GenerateKeyPair()
 	//_, serverPublicKey, err := enc.GenerateKeyPair()
 
@@ -551,7 +551,6 @@ func handleQuestion3(conn net.Conn, client *ent.Client) {
 	//clientPublicKey, err := bufio.NewReader(conn).ReadBytes('\n')
 	clientPublicKey, err := readFromConnection(conn)
 	fmt.Print("start\n" + string(clientPublicKey) + "end\n")
-
 	clientPubDecoded, err := enc.DecodePublicKey(clientPublicKey)
 	conn.Write([]byte(string(serverPubPEM) + "\n"))
 	fmt.Println("the student public key", clientPubDecoded)
@@ -574,6 +573,14 @@ func handleQuestion3(conn net.Conn, client *ent.Client) {
 
 	//fmt.Println("this the session key", string(session))
 	//
+	_, err = StorePublicKey(client, userName, password, string(clientPublicKey))
+	if err != nil {
+		log.Println("something went wrong")
+
+		//return
+	}
+	log.Println("the public key stored")
+
 	go func() {
 		for {
 			//fmt.Println("the pro goroutine started")
@@ -796,7 +803,15 @@ func handleLogin(conn net.Conn, client *ent.Client) {
 		} else if role == "Q3" {
 
 			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ3")
-			handleQuestion3(conn, client)
+			handleQuestion3(conn, client, username, password)
+		} else if role == "Q4" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ4")
+			handleQuestion4(conn, client, username)
+		} else if role == "Q5" {
+
+			fmt.Println("QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ5")
+			handleQuestion5(conn, client, username)
 		}
 
 		//handleChat(conn, username)
@@ -808,6 +823,246 @@ func handleLogin(conn net.Conn, client *ent.Client) {
 	//} else {
 	//	conn.Write([]byte("Login failed. Invalid username or password.\n"))
 	//}
+}
+func receiveCertificate(conn net.Conn) ([]byte, error) {
+	lengthBytes := make([]byte, 4)
+	_, err := conn.Read(lengthBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	certLength := int(binary.BigEndian.Uint32(lengthBytes))
+	certBytes := make([]byte, certLength)
+	_, err = conn.Read(certBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return certBytes, nil
+}
+func receiveCertificate1(conn net.Conn) ([]byte, error) {
+	lengthBytes := make([]byte, 4)
+	_, err := io.ReadFull(conn, lengthBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error reading certificate length: %w", err)
+	}
+
+	certLength := int(binary.BigEndian.Uint32(lengthBytes))
+	certBytes := make([]byte, certLength)
+
+	n, err := io.ReadFull(conn, certBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error reading certificate data: %w", err)
+	}
+
+	// Check if all expected bytes have been read
+	if n != certLength {
+		return nil, fmt.Errorf("expected %d bytes, but only read %d bytes", certLength, n)
+	}
+
+	return certBytes, nil
+}
+
+func handleQuestion5(conn net.Conn, client *ent.Client, username string) {
+	// Receive client certificate
+	clientCertificate, err := receiveCertificate(conn)
+	if err != nil {
+		fmt.Println("Error receiving client certificate:", err)
+		return
+	}
+	clientCertFile, err := os.Create("client_certificate.pem")
+
+	//clientCertFile, err := os.Create(username + "_client_certificate.pem")
+	if err != nil {
+		fmt.Println("Error creating client certificate file:", err)
+		return
+	}
+	_, err = clientCertFile.Write(clientCertificate)
+
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+		return
+	}
+	//// Create a PEM block
+	//pemBlock := &pem.Block{
+	//	Type:  "CERTIFICATE",
+	//	Bytes: clientCertificate,
+	//}
+	//
+	//// Encode the PEM block to the file
+	//err = pem.Encode(clientCertFile, pemBlock)
+	//if err != nil {
+	//	fmt.Println("Error encoding client certificate:", err)
+	//	return
+	//}
+	stat, err := clientCertFile.Stat()
+	if err != nil {
+		return
+	}
+	fmt.Println(stat.Size())
+	fmt.Println(len(clientCertificate))
+	clientCertFile.Close()
+	fmt.Println("Client certificate saved to file.")
+	//// Save client certificate to file (optional)
+	//clientCertFile, err := os.Create(username + "_client_certificate.pem")
+	//if err != nil {
+	//	fmt.Println("Error creating client certificate file:", err)
+	//	return
+	//}
+	//pem.Encode(clientCertFile, &pem.Block{Type: "CERTIFICATE", Bytes: clientCertificate})
+	//clientCertFile.Close()
+	//fmt.Println("done")
+	// Decode the PEM-encoded certificate
+	block, _ := pem.Decode(clientCertificate)
+	if block == nil || block.Type != "CERTIFICATE" {
+		fmt.Println("Failed to decode PEM block containing certificate")
+		return
+	}
+
+	// Parse the certificate
+	receivedCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		fmt.Println("Error parsing received certificate:", err)
+		return
+	}
+
+	// Load the root certificate (replace "rootCA.pem" with the path to your root CA certificate)
+	rootCertPEM, err := os.ReadFile("ca_certificate.pem")
+	if err != nil {
+		fmt.Println("Error reading root certificate:", err)
+		return
+	}
+
+	// Decode the PEM-encoded root certificate
+	block, _ = pem.Decode(rootCertPEM)
+	if block == nil || block.Type != "CERTIFICATE" {
+		fmt.Println("Failed to decode PEM block containing root certificate")
+		return
+	}
+
+	// Parse the root certificate
+	rootCert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		fmt.Println("Error parsing root certificate:", err)
+		return
+	}
+
+	// Create a certificate pool containing the root certificate
+	rootCertPool := x509.NewCertPool()
+	rootCertPool.AddCert(rootCert)
+
+	// Verify the received certificate against the root certificate
+	opts := x509.VerifyOptions{
+		Roots:         rootCertPool,
+		Intermediates: x509.NewCertPool(),
+	}
+
+	if _, err := receivedCert.Verify(opts); err != nil {
+		fmt.Println("Certificate verification failed:", err)
+		return
+	}
+
+	fmt.Println("Certificate verification successful.")
+}
+
+func handleQuestion4(conn net.Conn, client *ent.Client, username string) {
+
+	serverPrivateKey, serverPublicKey, err := enc.GenerateKeyPair()
+	//_, serverPublicKey, err := enc.GenerateKeyPair()
+
+	if err != nil {
+
+		fmt.Println("Error generating key pair for server:", err)
+		return
+	}
+	serverPubPEM, err := enc.EncodePublicKey(serverPublicKey)
+	if err != nil {
+		fmt.Println("Error encoding server public key:", err)
+		return
+	}
+	//clientPublicKey, err := bufio.NewReader(conn).ReadBytes('\n')
+	clientPublicKey, err := readFromConnection(conn)
+	fmt.Print("start\n" + string(clientPublicKey) + "end\n")
+	clientPubDecoded, err := enc.DecodePublicKey(clientPublicKey)
+	conn.Write([]byte(string(serverPubPEM) + "\n"))
+	fmt.Println("the student public key", clientPubDecoded)
+	fmt.Printf("Server Public Key: %+v\n", clientPubDecoded)
+
+	session, err := bufio.NewReader(conn).ReadBytes('\n')
+	session = []byte(strings.TrimSpace(string(session)))
+
+	uDec, err := base64.StdEncoding.DecodeString(string(session))
+	data, _ := enc.Decrypt([]byte(uDec), serverPrivateKey)
+
+	session = data
+	fmt.Printf("Session Key: %x\n", session)
+
+	var PublicKey rsa.PublicKey
+	err = gob.NewDecoder(conn).Decode(&PublicKey)
+	if err != nil {
+		fmt.Println("Error receiving PublicKey :", err)
+		return
+	}
+
+	// fmt.Println(PublicKey)
+	fmt.Printf("Server Public Key: %+v\n", PublicKey)
+	var signedPDF []byte
+
+	err = gob.NewDecoder(conn).Decode(&signedPDF)
+	// err = gob.NewDecoder(conn).Decode(&signedPDF)
+	if err != nil {
+		fmt.Println("Error receiving signed PDF:", err)
+		return
+	}
+	//signedPDF, _ = enc.Decrypt([]byte(signedPDF), serverPrivateKey)
+	signedPDF, _ = enc.GetAESDecrypted1(signedPDF, string(session))
+
+	sig := signedPDF[len(signedPDF)-256:]
+	//hashedPDF := sha256.Sum256(fileContents)
+
+	hash := sha256.Sum256(signedPDF[:len(signedPDF)-256])
+	// Verify the signature
+	//hashedPDF := sha256.Sum256(signedPDF)
+	//err = rsa.VerifyPKCS1v15(&PublicKey, crypto.SHA256, hashedPDF[:], signedPDF[len(signedPDF)-256:])
+	err = rsa.VerifyPKCS1v15(&PublicKey, crypto.SHA256, hash[:], sig)
+
+	// fmt.Println("the sign len", (len(signedPDF) - 256))
+	fmt.Println("the sign len", len(signedPDF[len(signedPDF)-256:]))
+	// fmt.Printf("%v\n", signedPDF[len(signedPDF)-256:])
+	// err = rsa.VerifyPKCS1v15(&PublicKey, crypto.SHA256, hashedPDF[:], signedPDF[:])
+	if err != nil {
+		fmt.Println("Signature verification failed:", err)
+		return
+	}
+
+	// Save the verified PDF file
+	fileName := "received.pdf"
+	// err = os.WriteFile("received.pdf", signedPDF[:], 0644)
+	err = os.WriteFile(fileName, signedPDF[:len(signedPDF)-256], 0644)
+	if err != nil {
+		fmt.Println("Error saving received PDF:", err)
+		return
+	}
+
+	fmt.Println("File received and verified successfully.")
+	file, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	// Set the log output to the file
+	log.SetOutput(file)
+
+	// Write logs to the file
+
+	log.Println("This is a log message")
+	log.Printf("This is a formatted log message: %s", "Hello, World!")
+	ui := uuid.New().String()
+	log.Printf("the user: %s did send the file : %s and the action with uuid: %s", username, fileName, ui)
+	conn.Write([]byte(ui))
+	conn.Write([]byte("\n"))
+
 }
 
 func readLine(conn net.Conn) (string, error) {
@@ -851,6 +1106,22 @@ func RegisterStudent(client *ent.Client, username, password, nationalNumber, hom
 	}
 	return true, nil
 }
+func StorePublicKey(client *ent.Client, userName, password, publicKey string) (bool, error) {
+	//user, err := client.Student.Query().Where(student.Name(userName),
+	//	student.Password(password)).Only(context.Background())
+	user, err := client.Student.Query().Where(student.Name(userName),
+		student.Password(password)).First(context.Background())
+
+	if err != nil {
+		log.Printf("failed creating user: %v", err)
+		return false, err
+	} else {
+		user.Update().SetEnycrptionKey(publicKey).Save(context.Background())
+		return true, nil
+	}
+
+	return false, nil
+}
 func ContuineRegisterationStudent(client *ent.Client, nationalNumber, home_loc, phoneNumber, userName, password string) (bool, error) {
 	//_, err := client.Student.
 	//	Create().SetNationalNumber(nationalNumber).
@@ -890,16 +1161,16 @@ func RegisterNotCompleteStudent(client *ent.Client, username, password string) (
 	return true, nil
 }
 
-func RegisterProfessor(client *ent.Client, username, password, email, nationalNumber, home_loc, phoneNumber string) error {
+func RegisterProfessor(client *ent.Client, username, password string) (bool, error) {
 	_, err := client.Professor.
 		Create().SetName(username).
 		SetPassword(password).
 		Save(context.Background())
 	if err != nil {
 		log.Printf("failed creating user: %v", err)
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func QueryProfessor(ctx context.Context, client *ent.Client) (bool, error) {

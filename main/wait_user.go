@@ -18,7 +18,6 @@ func main() {
 
 	reader := bufio.NewReader(os.Stdin)
 	readerFromTheServer := bufio.NewReader(conn)
-
 	for {
 		//fmt.Print("Enter text: ")
 		message, err := readerFromTheServer.ReadString('\n')
