@@ -16,5 +16,20 @@ Project Components
     Server Code: Manages the backend operations, including user authentication, chat management, and handling secure communication channels.
     Certificate Authority (CA) Code: Responsible for generating and verifying digital certificates, ensuring secure communication within the system.
     Encryption Package: A set of utilities for AES and RSA encryption/decryption, and digital signature generation/verification.
-docs link from the repo
-https://github.com/abdallhMoukdad/chat-cyber-security/blob/main/project_docs.pdf
+
+How to Use
+
+    Clone the Repository:
+
+    bash
+
+
+    Run the CA Server: Start the CA server to manage certificate requests and issuance.
+    Deploy the Server: Start the TCP server that handles student and professor logins and secure communications.
+    Execute User/Professor Code: Run the respective client code to interact with the server, performing actions like secure login, chat, and file exchanges.
+
+Security Measures
+
+    Encryption: Utilizes AES-256 CBC for encrypting sensitive data and RSA for secure key exchanges.
+    Digital Certificates: Ensures secure communication by verifying client certificates through a CA.
+    Data Integrity: Files and messages are encrypted and signed to prevent unauthorized access and tampering.
