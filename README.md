@@ -19,10 +19,7 @@ Project Components
 
 How to Use
 
-    Clone the Repository:
-
-    bash
-
+    Clone the Repository
 
     Run the CA Server: Start the CA server to manage certificate requests and issuance.
     Deploy the Server: Start the TCP server that handles student and professor logins and secure communications.
